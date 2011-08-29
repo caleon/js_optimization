@@ -1,0 +1,55 @@
+This is a gem designed to assist in optimizing the client's load times when your web application utilizes lots of Javascript. As any seasoned web developer knows, it is ideal to place the <script> tags at the end of the HTML document so that the loading of these files do not block the loading of the DOM tree itself.
+
+But to meet such standards often means rewriting many of the existing calls. And even while attempting to be as unobstrusive as possible while writing Javascript, there are inevitably times when it makes more sense to write a Javascript code pertaining to a specific DOM element right by the element instead of grouped together at the bottom of the layout. This can lead to situations wherein Javascript code is littered throughout the HTML body, impeding your efforts to bring all of the Javascript calls to the bottom of the page.
+
+This library offers a solution by reworking the common javascript_tag call, so that depending on (currently) the SCRIPTS_AT_BOTTOM constant value, it will either behave normally, or in the special manner by which all javascript calls are saved and then neatly printed at the bottom of the page.
+
+
+View setup:
+===========
+
+The ideal setup is one in which your layout file embeds a ERB partial specifically existing for the purpose of printing all javascript related material:
+
+<%= render :partial => 'shared/javascripts' %>
+
+and going further, in the HEAD tag, this line can be modified to read:
+
+<%= render :partial => 'shared/javascripts' unless scripts_at_bottom? %>
+
+... with another similar call at the bottom of the BODY tag which reads:
+
+<%= render :partial => 'shared/javascripts' if scripts_at_bottom? %>
+
+
+The shared/javascripts partial file:
+========================
+
+Depending on your needs, the following are kinds of javascripts you may embed into that javascripts partial:
+
+<%= javascript_tag :position => :top do %>
+	var Bridge = { options: { path: '/javascripts/bridge/' } },
+	    Tipped = { options: { path: '/javascripts/tipped/' } };
+<% end %>
+
+<%= print_js_extras_for(:top) %>
+
+<%= javascript_include_tag :my_defaults, :enhancements, :adminset, 'application', :cache => 'base' %>
+<%= javascript_include_tag 'facebook', 'payment', 																:cache => 'modules' unless admin_layout? %>
+<%= print_js_files! %>
+
+<%= print_js_regulars! %>
+<%= print_js_extras! %>
+
+<%= print_js_extras_for(:bottom) %>
+
+
+Writing the actual Javascript:
+==============================
+
+The most basic usage is the standard javascript_tag method. Both the inline as well as block-using variants will continue to work as before, except if SCRIPTS_AT_BOTTOM returns true, this code will not be printed immediately where called in a view, but instead where you call #print_js_regulars! (in shared/javascripts if you followed the example above).
+
+
+There are several variants that specify where in the printed Javascripts a code should appear (if you need a certain code evaluated or loaded before others, for instance), and these are [ :extras, :top_extras, :bottom_extras, :very_top_extras, :very_bottom_extras ]. Most of these are self-explanatory but the "very_" prepended variants refer to cases wherein you ALWAYS want such-and-such code to appear at the top/bottom of the HTML regardless of the SCRIPTS_AT_BOTTOM value.
+
+Other variants are [ :onloads, :default_files, :files, :behaviors ] but mostly these are convenience methods which I would not recommend too strongly, since they are based off of the lowpro.js library based on Prototype, neither of which are maintained at the moment. In the near future this gem will be updated to utilize jQuery to handle events and behaviors.
+
